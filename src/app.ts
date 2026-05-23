@@ -1,7 +1,9 @@
 import express, { type Application } from "express";
 import CookieParser from "cookie-parser";
-import { AppError } from "./modules/error/app_error.js";
-import { globalErrorController } from "./modules/error/error_controller.js";
+import { AppError } from "./modules/error/error.js";
+import { globalErrorController } from "./modules/error/error.controller.js";
+import authRouter from "./modules/auth/auth.router.js";
+import issueRouter from "./modules/issue/router.js";
 
 const app: Application = express();
 
@@ -11,9 +13,8 @@ app.use(express.text());
 app.use(express.text());
 app.use(express.urlencoded({ extended: true }));
 
-app.get("/", (req, res) => {
-  res.json({ status: "success", message: "welcome to the api" });
-});
+app.use("/api/auth", authRouter);
+app.use("/api/issues", issueRouter);
 
 app.all("/{*splat}", async (req, res, next) => {
   next(new AppError(`can't find ${req.originalUrl} on this server`, 404));
