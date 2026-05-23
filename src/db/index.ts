@@ -2,7 +2,7 @@ import { Pool } from "pg";
 import { config } from "../config/index.js";
 
 export const pool = new Pool({
-  connectionString: config.NEONDB_URL,
+  connectionString: config.connectionString,
 });
 
 pool.on("error", (err) => {

@@ -32,8 +32,8 @@ async function startServer() {
     await initDB();
     console.log("Database connected and schemas verified.");
 
-    server = app.listen(config.PORT, () => {
-      console.log(`Server is running on port ${config.PORT}`);
+    server = app.listen(config.port, () => {
+      console.log(`Server is running on port ${config.port}`);
     });
   } catch (err) {
     console.error("FATAL: Failed to initialize application sequence", err);

@@ -4,6 +4,6 @@ import path from "path";
 dotenvx.config({ path: path.join(process.cwd(), ".env") });
 
 export const config = {
-  PORT: process.env.PORT || 5000,
-  NEONDB_URL: process.env.DATABASE_URL as string,
+  port: process.env.PORT || 5000,
+  connectionString: process.env.DATABASE_URL as string,
 };
