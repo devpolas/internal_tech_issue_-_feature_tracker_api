@@ -122,15 +122,11 @@ export async function checkJWTToken(token: string) {
     return user;
   } catch (error: unknown) {
     if (error instanceof jwt.TokenExpiredError) {
-      if (error.name === "TokenExpiredError") {
-        throw new AppError("Refresh token expired", 401);
-      }
+      throw new AppError("Refresh token expired", 401);
     }
 
     if (error instanceof jwt.JsonWebTokenError) {
-      if (error.name === "JsonWebTokenError") {
-        throw new AppError("Invalid refresh token", 401);
-      }
+      throw new AppError("Invalid refresh token", 401);
     }
 
     throw error;
