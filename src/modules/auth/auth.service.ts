@@ -82,13 +82,13 @@ export async function loginUserFromDb(payload: {
   ]);
 
   if (user.rows.length === 0) {
-    return new AppError("Invalid email or password", 401);
+    return new AppError("Invalid credentials", 401);
   }
 
   const isPasswordValid = await checkPassword(password, user.rows[0].password);
 
   if (!isPasswordValid) {
-    return new AppError("Invalid email or password", 401);
+    return new AppError("Invalid credentials", 401);
   }
 
   delete user.rows[0].password;
