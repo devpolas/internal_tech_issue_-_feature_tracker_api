@@ -9,7 +9,7 @@ import jwt, {
 } from "jsonwebtoken";
 import type { AuthTokenType, User } from "./auth.js";
 import { config } from "../../config/index.js";
-import type { NextFunction, Response } from "express";
+import type { Response } from "express";
 
 export function sendJWT(res: Response, user: User, tokenType: AuthTokenType) {
   if (tokenType === "access_token") {
@@ -36,15 +36,12 @@ export function sendJWT(res: Response, user: User, tokenType: AuthTokenType) {
     });
   }
 }
-export async function createUserIntoDB(
-  payload: {
-    name: string;
-    email: string;
-    password: string;
-    role: string;
-  },
-  next: NextFunction,
-) {
+export async function createUserIntoDB(payload: {
+  name: string;
+  email: string;
+  password: string;
+  role: string;
+}) {
   const { name, email, password, role } = payload;
 
   const existingUser = await pool.query(
@@ -53,7 +50,7 @@ export async function createUserIntoDB(
   );
 
   if (existingUser.rows.length > 0) {
-    return next(new AppError("Already registered with this email", 400));
+    throw new AppError("Already registered with this email", 400);
   }
 
   const hashedPassword = await bcrypt.hash(password, 12);
@@ -75,26 +72,23 @@ async function checkPassword(
   return await bcrypt.compare(password, hashedPassword);
 }
 
-export async function loginUserFromDb(
-  payload: {
-    email: string;
-    password: string;
-  },
-  next: NextFunction,
-) {
+export async function loginUserFromDb(payload: {
+  email: string;
+  password: string;
+}) {
   const { email, password } = payload;
   const user = await pool.query(`SELECT * FROM users WHERE email = $1`, [
     email,
   ]);
 
   if (user.rows.length === 0) {
-    return next(new AppError("Invalid credentials", 401));
+    throw new AppError("Invalid credentials", 401);
   }
 
   const isPasswordValid = await checkPassword(password, user.rows[0].password);
 
   if (!isPasswordValid) {
-    return next(new AppError("Invalid credentials", 401));
+    throw new AppError("Invalid credentials", 401);
   }
 
   delete user.rows[0].password;
@@ -102,9 +96,9 @@ export async function loginUserFromDb(
   return user.rows[0];
 }
 
-export async function checkJWTToken(token: string, next: NextFunction) {
+export async function checkJWTToken(token: string) {
   if (!token) {
-    return next(new AppError("Unauthorized", 401));
+    throw new AppError("Unauthorized", 401);
   }
 
   const decoded = jwt.verify(
@@ -122,7 +116,7 @@ export async function checkJWTToken(token: string, next: NextFunction) {
   const user = userData.rows[0];
 
   if (userData.rows.length === 0) {
-    return next(new AppError("User not found!!", 404));
+    throw new AppError("User not found!!", 404);
   }
 
   delete user.password;
