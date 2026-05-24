@@ -57,12 +57,6 @@ export const login = catchAsync(
     sendJWT(res, result, "access_token");
     sendJWT(res, result, "refresh_token");
 
-    res.status(200).json({
-      success: true,
-      message: "User login successfully!",
-      data: result,
-    });
-
     sendResponse(res, {
       statusCode: 200,
       success: true,
@@ -81,7 +75,6 @@ export const refreshToken = catchAsync(
     }
 
     sendJWT(res, result, "access_token");
-    sendJWT(res, result, "refresh_token");
 
     sendResponse(res, {
       statusCode: 200,
