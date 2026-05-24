@@ -2,7 +2,11 @@ import bcrypt from "bcrypt";
 import ms from "ms";
 import { pool } from "../../db/index.js";
 import { AppError } from "../error/error.js";
-import jwt, { type Secret, type SignOptions } from "jsonwebtoken";
+import jwt, {
+  type JwtPayload,
+  type Secret,
+  type SignOptions,
+} from "jsonwebtoken";
 import type { AuthTokenType, User } from "./auth.js";
 import { config } from "../../config/index.js";
 import type { Response } from "express";
@@ -17,7 +21,7 @@ export function sendJWT(res: Response, user: User, tokenType: AuthTokenType) {
     res.cookie("access_token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      sameSite: "lax",
     });
   } else if (tokenType === "refresh_token") {
     const secret: Secret = config.refresh_secret as string;
@@ -28,7 +32,7 @@ export function sendJWT(res: Response, user: User, tokenType: AuthTokenType) {
     res.cookie("refresh_token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      sameSite: "lax",
     });
   }
 }
@@ -71,4 +75,51 @@ async function checkPassword(
 export async function loginUserFromDb(payload: {
   email: string;
   password: string;
-}) {}
+}) {
+  const { email, password } = payload;
+  const user = await pool.query(`SELECT * FROM users WHERE email = $1`, [
+    email,
+  ]);
+
+  if (user.rows.length === 0) {
+    return new AppError("Invalid email or password", 401);
+  }
+
+  const isPasswordValid = await checkPassword(password, user.rows[0].password);
+
+  if (!isPasswordValid) {
+    return new AppError("Invalid email or password", 401);
+  }
+
+  delete user.rows[0].password;
+
+  return user.rows[0];
+}
+
+export async function checkJWTToken(token: string) {
+  if (!token) {
+    return new AppError("Unauthorized", 401);
+  }
+
+  const decoded = jwt.verify(
+    token as string,
+    config.refresh_secret as string,
+  ) as JwtPayload;
+
+  const userData = await pool.query(
+    `
+     SELECT * FROM users WHERE email=$1   
+        `,
+    [decoded.email],
+  );
+
+  const user = userData.rows[0];
+
+  if (userData.rows.length === 0) {
+    return new AppError("User not found!!", 404);
+  }
+
+  delete user.password;
+
+  return user;
+}
