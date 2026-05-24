@@ -5,6 +5,7 @@
     const require = createRequire(import.meta.url);
  
    
+"use strict";
 var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
@@ -33,7 +34,7 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 
 // node_modules/ms/index.js
 var require_ms = __commonJS({
-  "node_modules/ms/index.js"(exports, module) {
+  "node_modules/ms/index.js"(exports2, module2) {
     "use strict";
     var s = 1e3;
     var m = s * 60;
@@ -41,7 +42,7 @@ var require_ms = __commonJS({
     var d = h * 24;
     var w = d * 7;
     var y = d * 365.25;
-    module.exports = function(val, options) {
+    module2.exports = function(val, options) {
       options = options || {};
       var type = typeof val;
       if (type === "string" && val.length > 0) {
@@ -149,9 +150,9 @@ var require_ms = __commonJS({
 });
 
 // src/app.ts
-import express from "express";
-import CookieParser from "cookie-parser";
-import cors from "cors";
+var import_express3 = __toESM(require("express"), 1);
+var import_cookie_parser = __toESM(require("cookie-parser"), 1);
+var import_cors = __toESM(require("cors"), 1);
 
 // src/modules/error/error.ts
 var AppError = class extends Error {
@@ -201,19 +202,19 @@ var globalErrorController = (err, req, res, next) => {
 };
 
 // src/modules/auth/auth.router.ts
-import { Router } from "express";
+var import_express = require("express");
 
 // src/modules/auth/auth.service.ts
+var import_bcrypt = __toESM(require("bcrypt"), 1);
 var import_ms = __toESM(require_ms(), 1);
-import bcrypt from "bcrypt";
 
 // src/db/index.ts
-import { Pool } from "pg";
+var import_pg = require("pg");
 
 // src/config/index.ts
-import dotenvx from "@dotenvx/dotenvx";
-import path from "path";
-dotenvx.config({ path: path.join(process.cwd(), ".env") });
+var import_dotenvx = __toESM(require("@dotenvx/dotenvx"), 1);
+var import_path = __toESM(require("path"), 1);
+import_dotenvx.default.config({ path: import_path.default.join(process.cwd(), ".env") });
 var config = {
   port: process.env.PORT || 5e3,
   connectionString: process.env.DATABASE_URL,
@@ -224,7 +225,7 @@ var config = {
 };
 
 // src/db/index.ts
-var pool = new Pool({
+var pool = new import_pg.Pool({
   connectionString: config.connectionString
 });
 pool.on("error", (err) => {
@@ -262,14 +263,14 @@ async function initDB() {
 }
 
 // src/modules/auth/auth.service.ts
-import jwt from "jsonwebtoken";
+var import_jsonwebtoken = __toESM(require("jsonwebtoken"), 1);
 function sendJWT(res, user, tokenType) {
   if (tokenType === "access_token") {
     const secret = config.secret;
     const options = {
       expiresIn: config.access_token_expire
     };
-    const token = jwt.sign(user, secret, options);
+    const token = import_jsonwebtoken.default.sign(user, secret, options);
     res.cookie("access_token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -280,7 +281,7 @@ function sendJWT(res, user, tokenType) {
     const options = {
       expiresIn: config.refresh_token_expire
     };
-    const token = jwt.sign(user, secret, options);
+    const token = import_jsonwebtoken.default.sign(user, secret, options);
     res.cookie("refresh_token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -297,7 +298,7 @@ async function createUserIntoDB(payload) {
   if (existingUser.rows.length > 0) {
     throw new AppError("Already registered with this email", 400);
   }
-  const hashedPassword = await bcrypt.hash(password, 12);
+  const hashedPassword = await import_bcrypt.default.hash(password, 12);
   const user = await pool.query(
     `INSERT INTO users (name,email,password,role) VALUES ($1,$2,$3,$4) RETURNING *`,
     [name, email, hashedPassword, role]
@@ -306,7 +307,7 @@ async function createUserIntoDB(payload) {
   return user.rows[0];
 }
 async function checkPassword(password, hashedPassword) {
-  return await bcrypt.compare(password, hashedPassword);
+  return await import_bcrypt.default.compare(password, hashedPassword);
 }
 async function loginUserFromDb(payload) {
   const { email, password } = payload;
@@ -329,7 +330,7 @@ async function checkJWTToken(token, tokenType) {
       throw new AppError("Unauthorized", 401);
     }
     const secret = tokenType === "access_token" ? config.secret : config.refresh_secret;
-    const decoded = jwt.verify(token, secret);
+    const decoded = import_jsonwebtoken.default.verify(token, secret);
     const userData = await pool.query(`SELECT * FROM users WHERE email=$1`, [
       decoded.email
     ]);
@@ -340,10 +341,10 @@ async function checkJWTToken(token, tokenType) {
     delete user.password;
     return user;
   } catch (error) {
-    if (error instanceof jwt.TokenExpiredError) {
+    if (error instanceof import_jsonwebtoken.default.TokenExpiredError) {
       throw new AppError("Refresh token expired", 401);
     }
-    if (error instanceof jwt.JsonWebTokenError) {
+    if (error instanceof import_jsonwebtoken.default.JsonWebTokenError) {
       throw new AppError("Invalid refresh token", 401);
     }
     throw error;
@@ -423,26 +424,26 @@ var refreshToken = catchAsync(async (req, res) => {
 });
 
 // src/modules/auth/auth.router.ts
-var authRouter = Router();
+var authRouter = (0, import_express.Router)();
 authRouter.post("/signup", signup);
 authRouter.post("/login", login);
 authRouter.post("/refresh-token", refreshToken);
 var auth_router_default = authRouter;
 
 // src/modules/issue/router.ts
-import { Router as Router2 } from "express";
-var issueRouter = Router2();
+var import_express2 = require("express");
+var issueRouter = (0, import_express2.Router)();
 var router_default = issueRouter;
 
 // src/app.ts
-var app = express();
-app.use(CookieParser());
-app.use(express.json());
-app.use(express.text());
-app.use(express.text());
-app.use(express.urlencoded({ extended: true }));
+var app = (0, import_express3.default)();
+app.use((0, import_cookie_parser.default)());
+app.use(import_express3.default.json());
+app.use(import_express3.default.text());
+app.use(import_express3.default.text());
+app.use(import_express3.default.urlencoded({ extended: true }));
 app.use(
-  cors({
+  (0, import_cors.default)({
     origin: "http://localhost:5173, http://localhost:3000, http://localhost:5174, http://localhost:3001",
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
@@ -490,4 +491,4 @@ async function startServer() {
   }
 }
 startServer();
-//# sourceMappingURL=server.js.map
+//# sourceMappingURL=server.cjs.map
