@@ -1,6 +1,37 @@
 import bcrypt from "bcrypt";
+import ms from "ms";
 import { pool } from "../../db/index.js";
 import { AppError } from "../error/error.js";
+import jwt, { type Secret, type SignOptions } from "jsonwebtoken";
+import type { AuthTokenType, User } from "./auth.js";
+import { config } from "../../config/index.js";
+import type { Response } from "express";
+
+export function sendJWT(res: Response, user: User, tokenType: AuthTokenType) {
+  if (tokenType === "access_token") {
+    const secret: Secret = config.secret as string;
+    const options: SignOptions = {
+      expiresIn: config.access_token_expire as ms.StringValue,
+    };
+    const token = jwt.sign(user, secret, options);
+    res.cookie("access_token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+    });
+  } else if (tokenType === "refresh_token") {
+    const secret: Secret = config.refresh_secret as string;
+    const options: SignOptions = {
+      expiresIn: config.refresh_token_expire as ms.StringValue,
+    };
+    const token = jwt.sign(user, secret, options);
+    res.cookie("refresh_token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+    });
+  }
+}
 export async function createUserIntoDB(payload: {
   name: string;
   email: string;

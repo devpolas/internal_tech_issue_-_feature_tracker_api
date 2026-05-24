@@ -1,17 +1,6 @@
 import type { Request, Response } from "express";
-import jwt from "jsonwebtoken";
 import { AppError } from "../error/error.js";
 import { createUserIntoDB } from "./auth.service.js";
-import type { AuthTokenType, User } from "./auth.js";
-import { config } from "../../config/index.js";
-
-function sendJWT(res: Response, user: User, tokenType: AuthTokenType) {
-  if (tokenType === "access_token") {
-    const token = jwt.sign(user, config.secret as string, {
-      expiresIn: config.access_token_expire!,
-    });
-  }
-}
 
 export async function signup(req: Request, res: Response) {
   try {
