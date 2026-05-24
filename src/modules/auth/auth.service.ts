@@ -97,29 +97,42 @@ export async function loginUserFromDb(payload: {
 }
 
 export async function checkJWTToken(token: string) {
-  if (!token) {
-    throw new AppError("Unauthorized", 401);
+  try {
+    if (!token) {
+      throw new AppError("Unauthorized", 401);
+    }
+
+    const decoded = jwt.verify(
+      token,
+      config.refresh_secret as string,
+    ) as JwtPayload;
+
+    const userData = await pool.query(`SELECT * FROM users WHERE email=$1`, [
+      decoded.email,
+    ]);
+
+    if (userData.rows.length === 0) {
+      throw new AppError("User not found!", 404);
+    }
+
+    const user = userData.rows[0];
+
+    delete user.password;
+
+    return user;
+  } catch (error: unknown) {
+    if (error instanceof jwt.TokenExpiredError) {
+      if (error.name === "TokenExpiredError") {
+        throw new AppError("Refresh token expired", 401);
+      }
+    }
+
+    if (error instanceof jwt.JsonWebTokenError) {
+      if (error.name === "JsonWebTokenError") {
+        throw new AppError("Invalid refresh token", 401);
+      }
+    }
+
+    throw error;
   }
-
-  const decoded = jwt.verify(
-    token as string,
-    config.refresh_secret as string,
-  ) as JwtPayload;
-
-  const userData = await pool.query(
-    `
-     SELECT * FROM users WHERE email=$1   
-        `,
-    [decoded.email],
-  );
-
-  const user = userData.rows[0];
-
-  if (userData.rows.length === 0) {
-    throw new AppError("User not found!!", 404);
-  }
-
-  delete user.password;
-
-  return user;
 }
