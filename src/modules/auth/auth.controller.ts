@@ -58,7 +58,10 @@ export const login = catchAsync(async (req: Request, res: Response) => {
 });
 
 export const refreshToken = catchAsync(async (req: Request, res: Response) => {
-  const result = await checkJWTToken(req.cookies.refresh_token);
+  const result = await checkJWTToken(
+    req.cookies.refresh_token,
+    "refresh_token",
+  );
 
   if (!result) {
     throw new AppError("Unauthorized", 401);

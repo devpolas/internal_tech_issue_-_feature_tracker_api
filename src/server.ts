@@ -29,8 +29,8 @@ process.on("uncaughtException", (err: Error) => {
 // 2. Start server
 async function startServer() {
   try {
-    // await initDB();
-    // console.log("Database connected and schemas verified.");
+    await initDB();
+    console.log("Database connected and schemas verified.");
 
     server = app.listen(config.port, () => {
       console.log(`Server is running on port ${config.port}`);

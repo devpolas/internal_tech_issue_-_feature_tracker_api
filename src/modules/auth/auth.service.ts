@@ -96,16 +96,16 @@ export async function loginUserFromDb(payload: {
   return user.rows[0];
 }
 
-export async function checkJWTToken(token: string) {
+export async function checkJWTToken(token: string, tokenType: AuthTokenType) {
   try {
     if (!token) {
       throw new AppError("Unauthorized", 401);
     }
 
-    const decoded = jwt.verify(
-      token,
-      config.refresh_secret as string,
-    ) as JwtPayload;
+    const secret =
+      tokenType === "access_token" ? config.secret : config.refresh_secret;
+
+    const decoded = jwt.verify(token, secret as string) as JwtPayload;
 
     const userData = await pool.query(`SELECT * FROM users WHERE email=$1`, [
       decoded.email,
