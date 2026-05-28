@@ -4,7 +4,7 @@ import cors from "cors";
 import { AppError } from "./modules/error/error.js";
 import { globalErrorController } from "./modules/error/error.controller.js";
 import authRouter from "./modules/auth/auth.router.js";
-import issueRouter from "./modules/issue/router.js";
+import issueRouter from "./modules/issue/issue.router.js";
 
 const app: Application = express();
 
