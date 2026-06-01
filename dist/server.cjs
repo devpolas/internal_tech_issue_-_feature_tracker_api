@@ -12,9 +12,6 @@ var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __commonJS = (cb, mod) => function __require() {
-  return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
-};
 var __copyProps = (to, from, except, desc) => {
   if (from && typeof from === "object" || typeof from === "function") {
     for (let key of __getOwnPropNames(from))
@@ -31,123 +28,6 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
   mod
 ));
-
-// node_modules/ms/index.js
-var require_ms = __commonJS({
-  "node_modules/ms/index.js"(exports2, module2) {
-    "use strict";
-    var s = 1e3;
-    var m = s * 60;
-    var h = m * 60;
-    var d = h * 24;
-    var w = d * 7;
-    var y = d * 365.25;
-    module2.exports = function(val, options) {
-      options = options || {};
-      var type = typeof val;
-      if (type === "string" && val.length > 0) {
-        return parse(val);
-      } else if (type === "number" && isFinite(val)) {
-        return options.long ? fmtLong(val) : fmtShort(val);
-      }
-      throw new Error(
-        "val is not a non-empty string or a valid number. val=" + JSON.stringify(val)
-      );
-    };
-    function parse(str) {
-      str = String(str);
-      if (str.length > 100) {
-        return;
-      }
-      var match = /^(-?(?:\d+)?\.?\d+) *(milliseconds?|msecs?|ms|seconds?|secs?|s|minutes?|mins?|m|hours?|hrs?|h|days?|d|weeks?|w|years?|yrs?|y)?$/i.exec(
-        str
-      );
-      if (!match) {
-        return;
-      }
-      var n = parseFloat(match[1]);
-      var type = (match[2] || "ms").toLowerCase();
-      switch (type) {
-        case "years":
-        case "year":
-        case "yrs":
-        case "yr":
-        case "y":
-          return n * y;
-        case "weeks":
-        case "week":
-        case "w":
-          return n * w;
-        case "days":
-        case "day":
-        case "d":
-          return n * d;
-        case "hours":
-        case "hour":
-        case "hrs":
-        case "hr":
-        case "h":
-          return n * h;
-        case "minutes":
-        case "minute":
-        case "mins":
-        case "min":
-        case "m":
-          return n * m;
-        case "seconds":
-        case "second":
-        case "secs":
-        case "sec":
-        case "s":
-          return n * s;
-        case "milliseconds":
-        case "millisecond":
-        case "msecs":
-        case "msec":
-        case "ms":
-          return n;
-        default:
-          return void 0;
-      }
-    }
-    function fmtShort(ms2) {
-      var msAbs = Math.abs(ms2);
-      if (msAbs >= d) {
-        return Math.round(ms2 / d) + "d";
-      }
-      if (msAbs >= h) {
-        return Math.round(ms2 / h) + "h";
-      }
-      if (msAbs >= m) {
-        return Math.round(ms2 / m) + "m";
-      }
-      if (msAbs >= s) {
-        return Math.round(ms2 / s) + "s";
-      }
-      return ms2 + "ms";
-    }
-    function fmtLong(ms2) {
-      var msAbs = Math.abs(ms2);
-      if (msAbs >= d) {
-        return plural(ms2, msAbs, d, "day");
-      }
-      if (msAbs >= h) {
-        return plural(ms2, msAbs, h, "hour");
-      }
-      if (msAbs >= m) {
-        return plural(ms2, msAbs, m, "minute");
-      }
-      if (msAbs >= s) {
-        return plural(ms2, msAbs, s, "second");
-      }
-      return ms2 + " ms";
-    }
-    function plural(ms2, msAbs, n, name) {
-      var isPlural = msAbs >= n * 1.5;
-      return Math.round(ms2 / n) + " " + name + (isPlural ? "s" : "");
-    }
-  }
-});
 
 // src/app.ts
 var import_express3 = __toESM(require("express"), 1);
@@ -206,7 +86,6 @@ var import_express = require("express");
 
 // src/modules/auth/auth.service.ts
 var import_bcrypt = __toESM(require("bcrypt"), 1);
-var import_ms = __toESM(require_ms(), 1);
 
 // src/db/index.ts
 var import_pg = require("pg");
@@ -430,10 +309,141 @@ authRouter.post("/login", login);
 authRouter.post("/refresh-token", refreshToken);
 var auth_router_default = authRouter;
 
-// src/modules/issue/router.ts
+// src/modules/issue/issue.router.ts
 var import_express2 = require("express");
+
+// src/modules/issue/issue.service.ts
+async function createIssueIntoDB(payload, reporter_id) {
+  const { title, description, type } = payload;
+  const issue = await pool.query(
+    `INSERT INTO issues (title,description,type,reporter_id) VALUES ($1,$2,$3,$4) RETURNING *`,
+    [title, description, type, reporter_id]
+  );
+  return issue.rows[0];
+}
+async function getAllIssuesFromDB() {
+  const issues = await pool.query(`SELECT * FROM issues`);
+  return issues.rows;
+}
+async function getSingleIssueFromDB(id) {
+  const issue = await pool.query(`SELECT * FROM issues WHERE id = $1`, [id]);
+  return issue.rows[0];
+}
+async function updateIssueIntoDB(id, payload) {
+  const { title, description, type } = payload;
+  const updatedIssue = await pool.query(
+    `UPDATE issues SET title = $1, description = $2, type = $3 WHERE id = $4 RETURNING *`,
+    [title, description, type, id]
+  );
+  return updatedIssue.rows[0];
+}
+async function deleteIssueFromDB(id) {
+  await pool.query(`DELETE FROM issues WHERE id = $1 RETURNING *`, [id]);
+}
+
+// src/modules/issue/issue.controller.ts
+var createIssue = catchAsync(async (req, res) => {
+  const body = req.body;
+  const user = req.user;
+  const { title, description, type } = body;
+  if (!title || !description || !type) {
+    throw new AppError("title,description and type are required", 400);
+  }
+  if (!user) {
+    throw new AppError("Unauthorized", 401);
+  }
+  const issue = await createIssueIntoDB({ title, description, type }, user.id);
+  if (!issue) {
+    throw new AppError("Failed to create issue", 500);
+  }
+  sendResponse(res, {
+    success: true,
+    message: "Issue created successfully",
+    statusCode: 201,
+    data: issue
+  });
+});
+var getAllIssues = catchAsync(async (req, res) => {
+  const issues = await getAllIssuesFromDB();
+  if (!issues) {
+    throw new AppError("Failed to fetch issues", 500);
+  }
+  sendResponse(res, {
+    success: true,
+    message: "Issues retrived successfully",
+    statusCode: 200,
+    data: issues
+  });
+});
+var getSingleIssue = catchAsync(
+  async (req, res) => {
+    const id = req.params.id;
+    const issue = await getSingleIssueFromDB(Number(id));
+    if (!issue) {
+      throw new AppError("Issue not found", 404);
+    }
+    sendResponse(res, {
+      statusCode: 200,
+      message: "Issue retrived successfully",
+      success: true,
+      data: issue
+    });
+  }
+);
+var updateIssue = catchAsync(async (req, res) => {
+  const id = req.params.id;
+  const body = req.body;
+  const { title, description, type } = body;
+  if (!title || !description || !type) {
+    throw new AppError("title,description and type are required", 400);
+  }
+  const updatedIssue = await updateIssueIntoDB(Number(id), {
+    title,
+    description,
+    type
+  });
+  if (!updatedIssue) {
+    throw new AppError("Failed to update issue", 500);
+  }
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Issue updated successfully",
+    data: updatedIssue
+  });
+});
+var deleteIssue = catchAsync(async (req, res) => {
+  const id = req.params.id;
+  await deleteIssueFromDB(Number(id));
+  sendResponse(res, {
+    statusCode: 204,
+    success: true,
+    message: "Issue deleted successfully"
+  });
+});
+
+// src/middleware/auth.ts
+var authChecker = catchAsync(
+  async (req, res, next) => {
+    const token = req.headers.authorization;
+    if (!token) {
+      throw new AppError("Please login first", 401);
+    }
+    const user = await checkJWTToken(token, "access_token");
+    req.user = user;
+    next();
+  }
+);
+
+// src/modules/issue/issue.router.ts
 var issueRouter = (0, import_express2.Router)();
-var router_default = issueRouter;
+issueRouter.use(authChecker);
+issueRouter.post("/", createIssue);
+issueRouter.get("/", getAllIssues);
+issueRouter.get("/:id", getSingleIssue);
+issueRouter.patch("/:id", updateIssue);
+issueRouter.delete("/:id", deleteIssue);
+var issue_router_default = issueRouter;
 
 // src/app.ts
 var app = (0, import_express3.default)();
@@ -451,7 +461,7 @@ app.use(
   })
 );
 app.use("/api/auth", auth_router_default);
-app.use("/api/issues", router_default);
+app.use("/api/issues", issue_router_default);
 app.all("/{*splat}", async (req, res, next) => {
   next(new AppError(`can't find ${req.originalUrl} on this server`, 404));
 });
