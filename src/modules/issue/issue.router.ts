@@ -12,10 +12,12 @@ const issueRouter = Router();
 
 issueRouter.use(authChecker);
 
-issueRouter.post("/", createIssue);
-issueRouter.get("/", getAllIssues);
-issueRouter.get("/:id", getSingleIssue);
-issueRouter.patch("/:id", updateIssue);
-issueRouter.delete("/:id", deleteIssue);
+issueRouter.route("/").post(createIssue).get(getAllIssues);
+
+issueRouter
+  .route("/:id")
+  .get(getSingleIssue)
+  .patch(updateIssue)
+  .delete(deleteIssue);
 
 export default issueRouter;
