@@ -4,7 +4,8 @@ import {
   checkJWTToken,
   createUserIntoDB,
   loginUserFromDb,
-  sendJWT,
+  sendJWTinCookies,
+  signJWTToken,
 } from "./auth.service.js";
 import { catchAsync } from "../../utils/catch_async.js";
 import { sendResponse } from "../../utils/send_response.js";
@@ -22,9 +23,6 @@ export const signup = catchAsync(async (req: Request, res: Response) => {
   if (!result) {
     throw new AppError("Failed to create user", 500);
   }
-
-  sendJWT(res, result, "access_token");
-  sendJWT(res, result, "refresh_token");
 
   sendResponse(res, {
     statusCode: 201,
@@ -46,14 +44,17 @@ export const login = catchAsync(async (req: Request, res: Response) => {
   if (!result) {
     throw new AppError("Invalid email or password", 401);
   }
-  sendJWT(res, result, "access_token");
-  sendJWT(res, result, "refresh_token");
+  const accessToken = signJWTToken(result, "access_token");
+  const refreshToken = signJWTToken(result, "refresh_token");
+
+  sendJWTinCookies(res, accessToken as string, "access_token");
+  sendJWTinCookies(res, refreshToken as string, "refresh_token");
 
   sendResponse(res, {
     statusCode: 200,
     success: true,
     message: "User login successfully!",
-    data: result,
+    data: { token: accessToken, ...result },
   });
 });
 
@@ -67,7 +68,9 @@ export const refreshToken = catchAsync(async (req: Request, res: Response) => {
     throw new AppError("Unauthorized", 401);
   }
 
-  sendJWT(res, result, "access_token");
+  const accessToken = signJWTToken(result, "access_token");
+
+  sendJWTinCookies(res, accessToken as string, "access_token");
 
   sendResponse(res, {
     statusCode: 200,

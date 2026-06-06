@@ -21,7 +21,9 @@ export async function createIssueIntoDB(
 }
 
 export async function getAllIssuesFromDB() {
-  const issues = await pool.query(`SELECT * FROM issues`);
+  const issues = await pool.query(
+    `SELECT * FROM issues JOIN user ON issues.reporter_id = user.id`,
+  );
   return issues.rows;
 }
 

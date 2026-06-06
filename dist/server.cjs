@@ -105,7 +105,9 @@ var config = {
 
 // src/db/index.ts
 var pool = new import_pg.Pool({
-  connectionString: config.connectionString
+  connectionString: config.connectionString,
+  ssl: { rejectUnauthorized: false },
+  connectionTimeoutMillis: 1e4
 });
 pool.on("error", (err) => {
   console.error("Unexpected error on idle database client", err);
@@ -322,7 +324,9 @@ async function createIssueIntoDB(payload, reporter_id) {
   return issue.rows[0];
 }
 async function getAllIssuesFromDB() {
-  const issues = await pool.query(`SELECT * FROM issues`);
+  const issues = await pool.query(
+    `SELECT * FROM issues JOIN user ON issues.reporter_id = user.id`
+  );
   return issues.rows;
 }
 async function getSingleIssueFromDB(id) {
@@ -438,11 +442,8 @@ var authChecker = catchAsync(
 // src/modules/issue/issue.router.ts
 var issueRouter = (0, import_express2.Router)();
 issueRouter.use(authChecker);
-issueRouter.post("/", createIssue);
-issueRouter.get("/", getAllIssues);
-issueRouter.get("/:id", getSingleIssue);
-issueRouter.patch("/:id", updateIssue);
-issueRouter.delete("/:id", deleteIssue);
+issueRouter.route("/").post(createIssue).get(getAllIssues);
+issueRouter.route("/:id").get(getSingleIssue).patch(updateIssue).delete(deleteIssue);
 var issue_router_default = issueRouter;
 
 // src/app.ts

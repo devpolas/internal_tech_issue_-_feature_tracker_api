@@ -3,6 +3,8 @@ import { config } from "../config/index.js";
 
 export const pool = new Pool({
   connectionString: config.connectionString,
+  ssl: { rejectUnauthorized: false },
+  connectionTimeoutMillis: 10000,
 });
 
 pool.on("error", (err) => {

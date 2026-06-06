@@ -11,24 +11,36 @@ import type { AuthTokenType, User } from "./auth.js";
 import { config } from "../../config/index.js";
 import type { Response } from "express";
 
-export function sendJWT(res: Response, user: User, tokenType: AuthTokenType) {
+export function signJWTToken(user: User, tokenType: AuthTokenType) {
   if (tokenType === "access_token") {
     const secret: Secret = config.secret as string;
     const options: SignOptions = {
       expiresIn: config.access_token_expire as ms.StringValue,
     };
     const token = jwt.sign(user, secret, options);
-    res.cookie("access_token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-    });
+    return token;
   } else if (tokenType === "refresh_token") {
     const secret: Secret = config.refresh_secret as string;
     const options: SignOptions = {
       expiresIn: config.refresh_token_expire as ms.StringValue,
     };
     const token = jwt.sign(user, secret, options);
+    return token;
+  }
+}
+
+export function sendJWTinCookies(
+  res: Response,
+  token: string,
+  tokenType: AuthTokenType,
+) {
+  if (tokenType === "access_token") {
+    res.cookie("access_token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+    });
+  } else if (tokenType === "refresh_token") {
     res.cookie("refresh_token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
