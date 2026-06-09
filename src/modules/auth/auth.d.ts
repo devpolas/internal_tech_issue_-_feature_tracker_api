@@ -3,7 +3,6 @@ export type UserRole = "contributor" | "maintainer";
 export interface User {
   id: number;
   name: string;
-  email: string;
   role: UserRole;
 }
 

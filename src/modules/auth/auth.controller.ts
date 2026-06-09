@@ -1,4 +1,4 @@
-import type { NextFunction, Request, Response } from "express";
+import type { Request, Response } from "express";
 import { AppError } from "../error/error.js";
 import {
   checkJWTToken,
@@ -44,8 +44,14 @@ export const login = catchAsync(async (req: Request, res: Response) => {
   if (!result) {
     throw new AppError("Invalid email or password", 401);
   }
-  const accessToken = signJWTToken(result, "access_token");
-  const refreshToken = signJWTToken(result, "refresh_token");
+
+  const user = {
+    id: result.id,
+    name: result.name,
+    role: result.role,
+  };
+  const accessToken = signJWTToken(user, "access_token");
+  const refreshToken = signJWTToken(user, "refresh_token");
 
   sendJWTinCookies(res, accessToken as string, "access_token");
   sendJWTinCookies(res, refreshToken as string, "refresh_token");
