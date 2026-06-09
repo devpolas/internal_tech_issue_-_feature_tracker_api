@@ -6,7 +6,7 @@ import {
   deleteIssueFromDB,
   getAllIssuesFromDB,
   getSingleIssueFromDB,
-  updateIssueIntoDB,
+  updateIssueInDB,
 } from "./issue.service";
 import { sendResponse } from "../../utils/send_response";
 import { IssueType } from "./issue";
@@ -82,13 +82,18 @@ export const getSingleIssue = catchAsync(
 export const updateIssue = catchAsync(async (req: Request, res: Response) => {
   const id = req.params.id;
   const body = req.body;
+  const user = req.user;
+
+  if (!user) {
+    throw new AppError("Unauthorized", 401);
+  }
 
   const { title, description, type } = body;
   if (!title || !description || !type) {
     throw new AppError("title,description and type are required", 400);
   }
 
-  const updatedIssue = await updateIssueIntoDB(Number(id), {
+  const updatedIssue = await updateIssueInDB(Number(id), user.id, user.role, {
     title,
     description,
     type,

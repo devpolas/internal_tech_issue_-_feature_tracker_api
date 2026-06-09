@@ -95,7 +95,7 @@ export async function updateIssueInDB(
     issue.status === "open";
 
   if (!isMaintainer && !isOwnerContributor) {
-    throw new Error("You are not authorized to update this issue");
+    throw new AppError("You are not authorized to update this issue", 403);
   }
 
   const result = await pool.query(
