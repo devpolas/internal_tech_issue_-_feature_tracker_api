@@ -1,4 +1,5 @@
 import { pool } from "../../db";
+import { AppError } from "../error/error";
 
 interface IssueInput {
   title: string;
@@ -22,7 +23,7 @@ export async function createIssueIntoDB(
 
 export async function getAllIssuesFromDB() {
   const issues = await pool.query(
-    `SELECT * FROM issues JOIN user ON issues.reporter_id = user.id`,
+    `SELECT * FROM issues JOIN users ON issues.reporter_id = user.id`,
   );
   return issues.rows;
 }
@@ -33,10 +34,18 @@ export async function getSingleIssueFromDB(id: number) {
 }
 
 export async function updateIssueIntoDB(id: number, payload: IssueInput) {
-  const { title, description, type } = payload;
+  const fields = Object.entries(payload).filter(([_, v]) => v !== undefined);
+
+  if (fields.length === 0) {
+    throw new AppError("No fields to update", 400);
+  }
+
+  const setClauses = fields.map(([key], i) => `${key} = $${i + 1}`).join(", ");
+  const values = fields.map(([_, v]) => v);
+
   const updatedIssue = await pool.query(
-    `UPDATE issues SET title = $1, description = $2, type = $3 WHERE id = $4 RETURNING *`,
-    [title, description, type, id],
+    `UPDATE issues SET ${setClauses} WHERE id = $${fields.length + 1} RETURNING *`,
+    [...values, id],
   );
 
   return updatedIssue.rows[0];

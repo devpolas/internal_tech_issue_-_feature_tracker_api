@@ -310,7 +310,7 @@ async function createIssueIntoDB(payload, reporter_id) {
 }
 async function getAllIssuesFromDB() {
   const issues = await pool.query(
-    `SELECT * FROM issues JOIN user ON issues.reporter_id = user.id`
+    `SELECT * FROM issues JOIN users ON issues.reporter_id = user.id`
   );
   return issues.rows;
 }
