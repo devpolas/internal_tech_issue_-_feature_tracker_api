@@ -359,18 +359,33 @@ async function getSingleIssueFromDB(id) {
   );
   return issue.rows[0];
 }
-async function updateIssueIntoDB(id, payload) {
-  const fields = Object.entries(payload).filter(([_, v]) => v !== void 0);
-  if (fields.length === 0) {
-    throw new AppError("No fields to update", 400);
+async function updateIssueInDB(issueId, userId, userRole, payload) {
+  const issueResult = await pool.query(`SELECT * FROM issues WHERE id = $1`, [
+    issueId
+  ]);
+  const issue = issueResult.rows[0];
+  if (!issue) {
+    throw new AppError("Issue not found", 404);
   }
-  const setClauses = fields.map(([key], i) => `${key} = $${i + 1}`).join(", ");
-  const values = fields.map(([_, v]) => v);
-  const updatedIssue = await pool.query(
-    `UPDATE issues SET ${setClauses} WHERE id = $${fields.length + 1} RETURNING *`,
-    [...values, id]
+  const isMaintainer = userRole === "maintainer";
+  const isOwnerContributor = userRole === "contributor" && issue.reporter_id === userId && issue.status === "open";
+  if (!isMaintainer && !isOwnerContributor) {
+    throw new AppError("You are not authorized to update this issue", 403);
+  }
+  const result = await pool.query(
+    `
+    UPDATE issues
+    SET
+      title = COALESCE($1, title),
+      description = COALESCE($2, description),
+      type = COALESCE($3, type),
+      updated_at = NOW()
+    WHERE id = $4
+    RETURNING *
+    `,
+    [payload.title, payload.description, payload.type, issueId]
   );
-  return updatedIssue.rows[0];
+  return result.rows[0];
 }
 async function deleteIssueFromDB(id) {
   await pool.query(`DELETE FROM issues WHERE id = $1 RETURNING *`, [id]);
@@ -432,11 +447,15 @@ var getSingleIssue = catchAsync(
 var updateIssue = catchAsync(async (req, res) => {
   const id = req.params.id;
   const body = req.body;
+  const user = req.user;
+  if (!user) {
+    throw new AppError("Unauthorized", 401);
+  }
   const { title, description, type } = body;
   if (!title || !description || !type) {
     throw new AppError("title,description and type are required", 400);
   }
-  const updatedIssue = await updateIssueIntoDB(Number(id), {
+  const updatedIssue = await updateIssueInDB(Number(id), user.id, user.role, {
     title,
     description,
     type
@@ -473,13 +492,22 @@ var authChecker = catchAsync(
     next();
   }
 );
+var restrictTo = (...roles) => {
+  return (req, res, next) => {
+    if (!req.user || !roles.includes(req.user.role)) {
+      throw new AppError("You are not authorized to perform this action", 403);
+    }
+    next();
+  };
+};
 
 // src/modules/issue/issue.router.ts
 var issueRouter = Router2();
 issueRouter.route("/").get(getAllIssues);
+issueRouter.route("/:id").get(getSingleIssue);
 issueRouter.use(authChecker);
 issueRouter.route("/").post(createIssue);
-issueRouter.route("/:id").get(getSingleIssue).patch(updateIssue).delete(deleteIssue);
+issueRouter.route("/:id").patch(updateIssue).delete(restrictTo("maintainer"), deleteIssue);
 var issue_router_default = issueRouter;
 
 // src/app.ts
