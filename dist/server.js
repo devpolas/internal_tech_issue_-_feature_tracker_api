@@ -122,24 +122,31 @@ async function initDB() {
 
 // src/modules/auth/auth.service.ts
 import jwt from "jsonwebtoken";
-function sendJWT(res, user, tokenType) {
+function signJWTToken(user, tokenType) {
   if (tokenType === "access_token") {
     const secret = config.secret;
     const options = {
       expiresIn: config.access_token_expire
     };
     const token = jwt.sign(user, secret, options);
-    res.cookie("access_token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax"
-    });
+    return token;
   } else if (tokenType === "refresh_token") {
     const secret = config.refresh_secret;
     const options = {
       expiresIn: config.refresh_token_expire
     };
     const token = jwt.sign(user, secret, options);
+    return token;
+  }
+}
+function sendJWTinCookies(res, token, tokenType) {
+  if (tokenType === "access_token") {
+    res.cookie("access_token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax"
+    });
+  } else if (tokenType === "refresh_token") {
     res.cookie("refresh_token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -236,8 +243,6 @@ var signup = catchAsync(async (req, res) => {
   if (!result) {
     throw new AppError("Failed to create user", 500);
   }
-  sendJWT(res, result, "access_token");
-  sendJWT(res, result, "refresh_token");
   sendResponse(res, {
     statusCode: 201,
     success: true,
@@ -255,13 +260,15 @@ var login = catchAsync(async (req, res) => {
   if (!result) {
     throw new AppError("Invalid email or password", 401);
   }
-  sendJWT(res, result, "access_token");
-  sendJWT(res, result, "refresh_token");
+  const accessToken = signJWTToken(result, "access_token");
+  const refreshToken2 = signJWTToken(result, "refresh_token");
+  sendJWTinCookies(res, accessToken, "access_token");
+  sendJWTinCookies(res, refreshToken2, "refresh_token");
   sendResponse(res, {
     statusCode: 200,
     success: true,
     message: "User login successfully!",
-    data: result
+    data: { token: accessToken, ...result }
   });
 });
 var refreshToken = catchAsync(async (req, res) => {
@@ -272,7 +279,8 @@ var refreshToken = catchAsync(async (req, res) => {
   if (!result) {
     throw new AppError("Unauthorized", 401);
   }
-  sendJWT(res, result, "access_token");
+  const accessToken = signJWTToken(result, "access_token");
+  sendJWTinCookies(res, accessToken, "access_token");
   sendResponse(res, {
     statusCode: 200,
     success: true,
