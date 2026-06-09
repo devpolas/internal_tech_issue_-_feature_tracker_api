@@ -9,14 +9,22 @@ import {
   updateIssueIntoDB,
 } from "./issue.service";
 import { sendResponse } from "../../utils/send_response";
+import { IssueType } from "./issue";
 
 export const createIssue = catchAsync(async (req: Request, res: Response) => {
   const body = req.body;
   const user = req.user;
 
   const { title, description, type } = body;
+
   if (!title || !description || !type) {
     throw new AppError("title,description and type are required", 400);
+  }
+
+  const validTypes: IssueType[] = ["bug", "feature_request"];
+
+  if (type && !validTypes.includes(type)) {
+    throw new AppError("Invalid issue type", 400);
   }
 
   if (!user) {

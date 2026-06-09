@@ -379,6 +379,10 @@ var createIssue = catchAsync(async (req, res) => {
   if (!title || !description || !type) {
     throw new AppError("title,description and type are required", 400);
   }
+  const validTypes = ["bug", "feature_request"];
+  if (type && !validTypes.includes(type)) {
+    throw new AppError("Invalid issue type", 400);
+  }
   if (!user) {
     throw new AppError("Unauthorized", 401);
   }
