@@ -22,14 +22,52 @@ export async function createIssueIntoDB(
 }
 
 export async function getAllIssuesFromDB() {
-  const issues = await pool.query(
-    `SELECT * FROM issues JOIN users ON issues.reporter_id = user.id`,
-  );
-  return issues.rows;
+  const result = await pool.query(`
+    SELECT
+      i.id,
+      i.title,
+      i.description,
+      i.type,
+      i.status,
+      i.created_at,
+      i.updated_at,
+      json_build_object(
+        'id', u.id,
+        'name', u.name,
+        'role', u.role
+      ) AS reporter
+    FROM issues AS i
+    JOIN users AS u
+      ON i.reporter_id = u.id
+  `);
+
+  return result.rows;
 }
 
 export async function getSingleIssueFromDB(id: number) {
-  const issue = await pool.query(`SELECT * FROM issues WHERE id = $1`, [id]);
+  const issue = await pool.query(
+    `
+    SELECT
+      i.id,
+      i.title,
+      i.description,
+      i.type,
+      i.status,
+      i.created_at,
+      i.updated_at,
+      json_build_object(
+        'id', u.id,
+        'name', u.name,
+        'role', u.role
+      ) AS reporter
+    FROM issues AS i
+    JOIN users AS u
+      ON i.reporter_id = u.id
+    WHERE i.id = $1
+    `,
+    [id],
+  );
+
   return issue.rows[0];
 }
 

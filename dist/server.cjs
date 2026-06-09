@@ -332,20 +332,61 @@ async function createIssueIntoDB(payload, reporter_id) {
   return issue.rows[0];
 }
 async function getAllIssuesFromDB() {
-  const issues = await pool.query(
-    `SELECT * FROM issues JOIN users ON issues.reporter_id = user.id`
-  );
-  return issues.rows;
+  const result = await pool.query(`
+    SELECT
+      i.id,
+      i.title,
+      i.description,
+      i.type,
+      i.status,
+      i.created_at,
+      i.updated_at,
+      json_build_object(
+        'id', u.id,
+        'name', u.name,
+        'role', u.role
+      ) AS reporter
+    FROM issues AS i
+    JOIN users AS u
+      ON i.reporter_id = u.id
+  `);
+  return result.rows;
 }
 async function getSingleIssueFromDB(id) {
-  const issue = await pool.query(`SELECT * FROM issues WHERE id = $1`, [id]);
+  const issue = await pool.query(
+    `
+    SELECT
+      i.id,
+      i.title,
+      i.description,
+      i.type,
+      i.status,
+      i.created_at,
+      i.updated_at,
+      json_build_object(
+        'id', u.id,
+        'name', u.name,
+        'role', u.role
+      ) AS reporter
+    FROM issues AS i
+    JOIN users AS u
+      ON i.reporter_id = u.id
+    WHERE i.id = $1
+    `,
+    [id]
+  );
   return issue.rows[0];
 }
 async function updateIssueIntoDB(id, payload) {
-  const { title, description, type } = payload;
+  const fields = Object.entries(payload).filter(([_, v]) => v !== void 0);
+  if (fields.length === 0) {
+    throw new AppError("No fields to update", 400);
+  }
+  const setClauses = fields.map(([key], i) => `${key} = $${i + 1}`).join(", ");
+  const values = fields.map(([_, v]) => v);
   const updatedIssue = await pool.query(
-    `UPDATE issues SET title = $1, description = $2, type = $3 WHERE id = $4 RETURNING *`,
-    [title, description, type, id]
+    `UPDATE issues SET ${setClauses} WHERE id = $${fields.length + 1} RETURNING *`,
+    [...values, id]
   );
   return updatedIssue.rows[0];
 }
