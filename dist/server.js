@@ -476,8 +476,9 @@ var authChecker = catchAsync(
 
 // src/modules/issue/issue.router.ts
 var issueRouter = Router2();
+issueRouter.route("/").get(getAllIssues);
 issueRouter.use(authChecker);
-issueRouter.route("/").post(createIssue).get(getAllIssues);
+issueRouter.route("/").post(createIssue);
 issueRouter.route("/:id").get(getSingleIssue).patch(updateIssue).delete(deleteIssue);
 var issue_router_default = issueRouter;
 

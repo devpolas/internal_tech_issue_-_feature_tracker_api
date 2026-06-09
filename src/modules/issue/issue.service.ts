@@ -2,9 +2,9 @@ import { pool } from "../../db";
 import { AppError } from "../error/error";
 
 interface IssueInput {
-  title: string;
-  description: string;
-  type: string;
+  title?: string;
+  description?: string;
+  type?: string;
 }
 
 export async function createIssueIntoDB(
@@ -71,22 +71,48 @@ export async function getSingleIssueFromDB(id: number) {
   return issue.rows[0];
 }
 
-export async function updateIssueIntoDB(id: number, payload: IssueInput) {
-  const fields = Object.entries(payload).filter(([_, v]) => v !== undefined);
+export async function updateIssueInDB(
+  issueId: number,
+  userId: number,
+  userRole: string,
+  payload: IssueInput,
+) {
+  const issueResult = await pool.query(`SELECT * FROM issues WHERE id = $1`, [
+    issueId,
+  ]);
 
-  if (fields.length === 0) {
-    throw new AppError("No fields to update", 400);
+  const issue = issueResult.rows[0];
+
+  if (!issue) {
+    throw new AppError("Issue not found", 404);
   }
 
-  const setClauses = fields.map(([key], i) => `${key} = $${i + 1}`).join(", ");
-  const values = fields.map(([_, v]) => v);
+  const isMaintainer = userRole === "maintainer";
 
-  const updatedIssue = await pool.query(
-    `UPDATE issues SET ${setClauses} WHERE id = $${fields.length + 1} RETURNING *`,
-    [...values, id],
+  const isOwnerContributor =
+    userRole === "contributor" &&
+    issue.reporter_id === userId &&
+    issue.status === "open";
+
+  if (!isMaintainer && !isOwnerContributor) {
+    throw new Error("You are not authorized to update this issue");
+  }
+
+  const result = await pool.query(
+    `
+    UPDATE issues
+    SET
+      title = COALESCE($1, title),
+      description = COALESCE($2, description),
+      type = COALESCE($3, type),
+      updated_at = NOW()
+    WHERE id = $4
+    RETURNING *
+    `,
+    [payload.title, payload.description, payload.type, issueId],
   );
 
-  return updatedIssue.rows[0];
+  return result.rows[0];
 }
 
 export async function deleteIssueFromDB(id: Number) {
