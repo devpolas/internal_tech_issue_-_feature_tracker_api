@@ -283,8 +283,13 @@ var login = catchAsync(async (req, res) => {
   if (!result) {
     throw new AppError("Invalid email or password", 401);
   }
-  const accessToken = signJWTToken(result, "access_token");
-  const refreshToken2 = signJWTToken(result, "refresh_token");
+  const user = {
+    id: result.id,
+    name: result.name,
+    role: result.role
+  };
+  const accessToken = signJWTToken(user, "access_token");
+  const refreshToken2 = signJWTToken(user, "refresh_token");
   sendJWTinCookies(res, accessToken, "access_token");
   sendJWTinCookies(res, refreshToken2, "refresh_token");
   sendResponse(res, {
@@ -350,7 +355,7 @@ async function getAllIssuesFromDB() {
     JOIN users AS u
       ON i.reporter_id = u.id
   `);
-  return result.rows;
+  return result.rows ?? [];
 }
 async function getSingleIssueFromDB(id) {
   const issue = await pool.query(

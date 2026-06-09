@@ -41,7 +41,7 @@ export async function getAllIssuesFromDB() {
       ON i.reporter_id = u.id
   `);
 
-  return result.rows;
+  return result.rows ?? [];
 }
 
 export async function getSingleIssueFromDB(id: number) {

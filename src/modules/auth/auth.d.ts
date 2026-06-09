@@ -1,6 +1,6 @@
 export type UserRole = "contributor" | "maintainer";
 
-export interface User {
+export interface JWTSignUser {
   id: number;
   name: string;
   role: UserRole;

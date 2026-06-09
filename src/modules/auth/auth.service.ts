@@ -7,11 +7,11 @@ import jwt, {
   type Secret,
   type SignOptions,
 } from "jsonwebtoken";
-import type { AuthTokenType, User } from "./auth.js";
+import type { AuthTokenType, JWTSignUser } from "./auth.js";
 import { config } from "../../config/index.js";
 import type { Response } from "express";
 
-export function signJWTToken(user: User, tokenType: AuthTokenType) {
+export function signJWTToken(user: JWTSignUser, tokenType: AuthTokenType) {
   if (tokenType === "access_token") {
     const secret: Secret = config.secret as string;
     const options: SignOptions = {
