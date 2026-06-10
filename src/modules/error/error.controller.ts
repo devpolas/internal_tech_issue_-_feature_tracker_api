@@ -14,6 +14,7 @@ const sendProductionError = (err: AppError, res: Response) => {
   // Don't send accidentally other error
   if (err.isOperational) {
     res.status(err.statusCode).json({
+      success: err.success,
       status: err.status,
       message: err.message,
     });
@@ -40,6 +41,7 @@ export const globalErrorController = (
   } else if (process.env.NODE_ENV === "production") {
     let error = {
       ...err,
+      success: err.success,
       name: err.name,
       message: err.message,
       status: err.status,

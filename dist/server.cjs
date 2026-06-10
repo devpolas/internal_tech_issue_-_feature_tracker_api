@@ -225,8 +225,8 @@ async function checkJWTToken(token, tokenType) {
     }
     const secret = tokenType === "access_token" ? config.secret : config.refresh_secret;
     const decoded = import_jsonwebtoken.default.verify(token, secret);
-    const userData = await pool.query(`SELECT * FROM users WHERE email=$1`, [
-      decoded.email
+    const userData = await pool.query(`SELECT * FROM users WHERE id=$1`, [
+      decoded.id
     ]);
     if (userData.rows.length === 0) {
       throw new AppError("User not found!", 404);
@@ -416,18 +416,13 @@ async function updateIssueInDB(issueId, userId, userRole, payload) {
   );
   return result.rows[0];
 }
-async function deleteIssueFromDB(issueId, userId, userRole) {
+async function deleteIssueFromDB(issueId) {
   const issueResult = await pool.query(`SELECT * FROM issues WHERE id = $1`, [
     issueId
   ]);
   const issue = issueResult.rows[0];
   if (!issue) {
     throw new AppError("Issue not found", 404);
-  }
-  const isMaintainer = userRole === "maintainer";
-  const isOwnerContributor = userRole === "contributor" && issue.reporter_id === userId && issue.status === "open";
-  if (!isMaintainer && !isOwnerContributor) {
-    throw new AppError("You are not authorized to update this issue", 403);
   }
   await pool.query(`DELETE FROM issues WHERE id = $1 RETURNING *`, [issueId]);
 }
@@ -513,11 +508,7 @@ var updateIssue = catchAsync(async (req, res) => {
 });
 var deleteIssue = catchAsync(async (req, res) => {
   const id = req.params.id;
-  const user = req.user;
-  if (!user) {
-    throw new AppError("Unauthorized", 401);
-  }
-  await deleteIssueFromDB(Number(id), user.id, user.role);
+  await deleteIssueFromDB(Number(id));
   sendResponse(res, {
     statusCode: 204,
     success: true,
