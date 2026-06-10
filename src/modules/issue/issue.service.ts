@@ -115,11 +115,7 @@ export async function updateIssueInDB(
   return result.rows[0];
 }
 
-export async function deleteIssueFromDB(
-  issueId: Number,
-  userId: number,
-  userRole: string,
-) {
+export async function deleteIssueFromDB(issueId: Number) {
   const issueResult = await pool.query(`SELECT * FROM issues WHERE id = $1`, [
     issueId,
   ]);
@@ -128,17 +124,6 @@ export async function deleteIssueFromDB(
 
   if (!issue) {
     throw new AppError("Issue not found", 404);
-  }
-
-  const isMaintainer = userRole === "maintainer";
-
-  const isOwnerContributor =
-    userRole === "contributor" &&
-    issue.reporter_id === userId &&
-    issue.status === "open";
-
-  if (!isMaintainer && !isOwnerContributor) {
-    throw new AppError("You are not authorized to update this issue", 403);
   }
   await pool.query(`DELETE FROM issues WHERE id = $1 RETURNING *`, [issueId]);
 }

@@ -53,7 +53,13 @@ var globalErrorController = (err, req, res, next) => {
   if (process.env.NODE_ENV === "development") {
     sendDevError(err, res);
   } else if (process.env.NODE_ENV === "production") {
-    let error = { ...err, name: err.name };
+    let error = {
+      ...err,
+      name: err.name,
+      message: err.message,
+      status: err.status,
+      statusCode: err.statusCode
+    };
     sendProductionError(error, res);
   }
 };
@@ -387,8 +393,20 @@ async function updateIssueInDB(issueId, userId, userRole, payload) {
   );
   return result.rows[0];
 }
-async function deleteIssueFromDB(id) {
-  await pool.query(`DELETE FROM issues WHERE id = $1 RETURNING *`, [id]);
+async function deleteIssueFromDB(issueId, userId, userRole) {
+  const issueResult = await pool.query(`SELECT * FROM issues WHERE id = $1`, [
+    issueId
+  ]);
+  const issue = issueResult.rows[0];
+  if (!issue) {
+    throw new AppError("Issue not found", 404);
+  }
+  const isMaintainer = userRole === "maintainer";
+  const isOwnerContributor = userRole === "contributor" && issue.reporter_id === userId && issue.status === "open";
+  if (!isMaintainer && !isOwnerContributor) {
+    throw new AppError("You are not authorized to update this issue", 403);
+  }
+  await pool.query(`DELETE FROM issues WHERE id = $1 RETURNING *`, [issueId]);
 }
 
 // src/modules/issue/issue.controller.ts
@@ -472,7 +490,11 @@ var updateIssue = catchAsync(async (req, res) => {
 });
 var deleteIssue = catchAsync(async (req, res) => {
   const id = req.params.id;
-  await deleteIssueFromDB(Number(id));
+  const user = req.user;
+  if (!user) {
+    throw new AppError("Unauthorized", 401);
+  }
+  await deleteIssueFromDB(Number(id), user.id, user.role);
   sendResponse(res, {
     statusCode: 204,
     success: true,
