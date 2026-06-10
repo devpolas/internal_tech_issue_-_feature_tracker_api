@@ -36,11 +36,13 @@ var import_cors = __toESM(require("cors"), 1);
 
 // src/modules/error/error.ts
 var AppError = class extends Error {
+  success;
   statusCode;
   status;
   isOperational;
   constructor(message, statusCode) {
     super(message);
+    this.success = false;
     this.statusCode = statusCode;
     this.status = `${statusCode}`.startsWith("4") ? "fail" : "error";
     this.isOperational = true;
@@ -60,6 +62,7 @@ var sendDevError = (err, res) => {
 var sendProductionError = (err, res) => {
   if (err.isOperational) {
     res.status(err.statusCode).json({
+      success: err.success,
       status: err.status,
       message: err.message
     });
@@ -78,6 +81,7 @@ var globalErrorController = (err, req, res, next) => {
   } else if (process.env.NODE_ENV === "production") {
     let error = {
       ...err,
+      success: err.success,
       name: err.name,
       message: err.message,
       status: err.status,
