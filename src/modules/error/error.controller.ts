@@ -38,7 +38,13 @@ export const globalErrorController = (
   if (process.env.NODE_ENV === "development") {
     sendDevError(err, res);
   } else if (process.env.NODE_ENV === "production") {
-    let error = { ...err, name: err.name };
+    let error = {
+      ...err,
+      name: err.name,
+      message: err.message,
+      status: err.status,
+      statusCode: err.statusCode,
+    };
 
     sendProductionError(error, res);
   }
