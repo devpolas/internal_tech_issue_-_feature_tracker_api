@@ -113,7 +113,13 @@ export const updateIssue = catchAsync(async (req: Request, res: Response) => {
 
 export const deleteIssue = catchAsync(async (req: Request, res: Response) => {
   const id = req.params.id;
-  await deleteIssueFromDB(Number(id));
+  const user = req.user;
+
+  if (!user) {
+    throw new AppError("Unauthorized", 401);
+  }
+
+  await deleteIssueFromDB(Number(id), user.id, user.role);
 
   sendResponse(res, {
     statusCode: 204,
